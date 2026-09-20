@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>API Keys &amp; Quotas - API Gateway</title>
+  <meta name="description" content="API Credentials, Tier-Based Rate Limiting Quotas, and JWT Token Minting for API Gateway.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">API Credentials &amp; Tier Quota Management</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">⚡ Flush Buckets</button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link active">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <div class="two-col-grid">
+        <!-- Left: API Key Minting & Registry -->
+        <section class="apikey-panel glow-panel" id="apikey-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>API Key Management &amp; Tier Quotas</h2>
+              <p>Issue tiered access keys: Free (10/m), Pro (250/m), VIP (2.5k/m)</p>
+            </div>
+            <span class="tag-pill">API KEYS</span>
+          </div>
+          <div class="apikey-form">
+            <div class="input-grid-apikey">
+              <input type="text" id="input-key-owner" placeholder="Owner / App (e.g. Acme Mobile)" class="mono-input">
+              <select id="select-key-tier" class="mono-input select-input">
+                <option value="free">Free Tier (10 req/m)</option>
+                <option value="pro">Pro Tier (250 req/m)</option>
+                <option value="enterprise">Enterprise VIP (2,500 req/m)</option>
+              </select>
+              <button id="btn-generate-apikey" class="btn btn-secondary btn-tiny">⚡ Mint Key</button>
+            </div>
+          </div>
+          <div class="table-scroll" style="max-height:350px; margin-top: 14px;">
+            <table class="data-table" id="apikeys-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Owner</th>
+                  <th>Tier</th>
+                  <th>Quota</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="apikeys-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Right: JWT Token Studio -->
+        <section class="jwt-panel glow-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>JWT Bearer Token Minting Studio</h2>
+              <p>Generate cryptographic HMAC-SHA256 tokens for authenticated routes</p>
+            </div>
+            <span class="tag-pill">JWT STUDIO</span>
+          </div>
+
+          <div class="param-group" style="padding: 16px 0;">
+            <div class="input-row">
+              <label for="input-client-id">Client ID / Subject (sub)</label>
+              <input type="text" id="input-client-id" value="client-vip-42" class="mono-input" placeholder="Client ID">
+            </div>
+
+            <div class="input-row" style="margin-top: 10px;">
+              <div class="label-with-btn">
+                <label for="input-jwt-token">Signed JWT Bearer Token (24h expiry)</label>
+                <button type="button" id="btn-mint-token" class="btn btn-tiny btn-primary">⚡ Mint Token</button>
+              </div>
+              <textarea id="input-jwt-token" class="mono-input" rows="4" placeholder="Click 'Mint Token' to generate valid JWT signed with gateway HMAC secret" readonly></textarea>
+            </div>
+          </div>
+
+          <div class="jwt-info-box" style="background:#040705;border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;font-size:0.76rem;color:var(--text-muted);display:flex;flex-direction:column;gap:6px;">
+            <div>Signing Algorithm: <strong class="mono text-green">HS256 (HMAC with SHA-256)</strong></div>
+            <div>Protected Routes: <strong class="mono text-yellow">/api/users (and custom auth routes)</strong></div>
+            <div>Context Injection: <strong class="mono text-cyan">ClientID extracted &amp; passed downstream</strong></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Active Rate Limit Buckets in Redis -->
+      <section class="redis-panel glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Active Redis Rate Limit Buckets</h2>
+            <p>Live sliding-window counters currently tracked in Redis</p>
+          </div>
+          <button id="btn-refresh-buckets" class="btn btn-tiny btn-ghost">↻ Refresh</button>
+        </div>
+        <div class="table-scroll" style="max-height:220px;">
+          <table class="data-table" id="buckets-table">
+            <thead>
+              <tr>
+                <th>Bucket Key</th>
+                <th>Count</th>
+                <th>TTL</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="buckets-tbody">
+              <tr>
+                <td colspan="4" class="empty-cell">No active rate limit buckets yet. Send requests to create them!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left"><span class="dot-online"></span><span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span></div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item active">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item active" style="border-color:var(--primary-green); color:var(--primary-green);">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

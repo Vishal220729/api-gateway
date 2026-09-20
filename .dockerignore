@@ -1,0 +1,11 @@
+.git
+.gitignore
+*.exe
+*.log
+.system_generated/
+scripts/
+deploy/
+*.tar.gz
+*.zip
+.vscode/
+.idea/

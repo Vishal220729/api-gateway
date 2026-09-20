@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>Chaos &amp; Playground - API Gateway</title>
+  <meta name="description" content="Interactive API Testing Playground and Chaos Engineering Simulation for API Gateway.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">Chaos Engineering &amp; Interactive API Tester</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">⚡ Flush Buckets</button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link active">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <!-- Chaos Engineering Controller -->
+      <section class="chaos-panel glow-panel" id="chaos-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Chaos Engineering Controller (Fault &amp; Latency Injection)</h2>
+            <p>Inject synthetic delay &amp; simulated 500 downstream faults to test Circuit Breakers live</p>
+          </div>
+          <span class="tag-pill">CHAOS INJECTOR</span>
+        </div>
+        <div class="chaos-body">
+          <div class="chaos-controls-grid">
+            <div class="chaos-control">
+              <label>Artificial Latency: <strong id="val-chaos-latency" class="mono text-green">0 ms</strong></label>
+              <input type="range" id="slider-chaos-latency" min="0" max="1500" step="50" value="0" class="range-slider">
+            </div>
+            <div class="chaos-control">
+              <label>Fault Injection Rate (500 Error): <strong id="val-chaos-fault" class="mono text-yellow">0%</strong></label>
+              <div class="fault-btn-group" id="fault-btn-group">
+                <button class="btn btn-tiny pill-fault active" data-fault="0">0% (Off)</button>
+                <button class="btn btn-tiny pill-fault" data-fault="20">20%</button>
+                <button class="btn btn-tiny pill-fault" data-fault="50">50%</button>
+                <button class="btn btn-tiny pill-fault" data-fault="100">100%</button>
+              </div>
+            </div>
+          </div>
+          <div class="chaos-footer">
+            <button id="btn-apply-chaos" class="btn btn-primary btn-tiny">⚡ Apply Chaos Settings</button>
+            <button id="btn-reset-chaos" class="btn btn-ghost btn-tiny">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive API Playground -->
+      <section class="playground-panel glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Interactive API Request Playground</h2>
+            <p>Simulate requests, test JWT auth, API key quotas, WAF rules, and rate limits</p>
+          </div>
+          <span class="tag-pill">LIVE TESTER</span>
+        </div>
+
+        <div class="playground-body">
+          <!-- Endpoint Selector Tabs -->
+          <div class="route-tabs" id="route-tabs">
+            <button class="tab-btn active" data-path="/api/orders" data-method="GET" data-auth="false">
+              <span class="method-tag get">GET</span>
+              <span>/api/orders</span>
+              <span class="mini-pill">IP Limiter (100/min)</span>
+            </button>
+            <button class="tab-btn" data-path="/api/users" data-method="GET" data-auth="true">
+              <span class="method-tag get">GET</span>
+              <span>/api/users</span>
+              <span class="mini-pill lock">🔒 JWT Auth (50/min)</span>
+            </button>
+            <button class="tab-btn" data-path="/api/public" data-method="GET" data-auth="false">
+              <span class="method-tag get">GET</span>
+              <span>/api/public</span>
+              <span class="mini-pill">Public (5000/min)</span>
+            </button>
+          </div>
+
+          <!-- Parameters Grid -->
+          <div class="param-group">
+            <div class="input-row">
+              <label for="input-target-url">Target Request URL</label>
+              <div class="input-with-action">
+                <span class="input-prefix" id="disp-method">GET</span>
+                <input type="text" id="input-target-url" value="/api/orders" class="mono-input" readonly>
+              </div>
+            </div>
+
+            <div class="input-grid-2">
+              <div class="input-row">
+                <label for="input-client-ip">Client IP / X-Forwarded-For</label>
+                <input type="text" id="input-client-ip" value="192.168.1.100" class="mono-input" placeholder="IP Address">
+              </div>
+              <div class="input-row">
+                <label for="input-client-id">Client ID (for JWT Auth)</label>
+                <input type="text" id="input-client-id" value="client-vip-42" class="mono-input" placeholder="Client ID">
+              </div>
+            </div>
+
+            <div class="input-row" id="jwt-token-container">
+              <div class="label-with-btn">
+                <label for="input-jwt-token">Authorization Bearer Token</label>
+                <button type="button" id="btn-mint-token" class="btn btn-tiny">⚡ Mint Valid Token</button>
+              </div>
+              <input type="text" id="input-jwt-token" class="mono-input" placeholder="Click 'Mint Valid Token' to sign with gateway secret">
+            </div>
+
+            <!-- API Key Field & Tier Presets -->
+            <div class="input-row" id="apikey-container">
+              <div class="label-with-btn">
+                <label for="input-api-key">X-API-Key (Tiered Quota)</label>
+                <div style="display:flex;gap:4px;">
+                  <button type="button" class="btn btn-tiny" id="btn-tier-free" title="Free Tier: 10 req/min">Free (10/m)</button>
+                  <button type="button" class="btn btn-tiny" id="btn-tier-pro" title="Pro Tier: 250 req/min">Pro (250/m)</button>
+                  <button type="button" class="btn btn-tiny" id="btn-tier-vip" title="Enterprise VIP: 2,500 req/min">VIP (2.5k/m)</button>
+                </div>
+              </div>
+              <input type="text" id="input-api-key" class="mono-input" placeholder="Paste custom API key or click a preset tier above">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons-row">
+            <button id="btn-send-single" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Send Request
+            </button>
+            <button id="btn-send-burst-10" class="btn btn-secondary">⚡ Burst 10x</button>
+            <button id="btn-send-burst-55" class="btn btn-warning" title="Sends 55 requests to exceed 50 limit and trigger 429">🚨 Trigger 429 Limit (55x)</button>
+            <button id="btn-benchmark-quick" class="btn btn-ghost-green">🚀 Run 1k Load Test</button>
+          </div>
+
+          <!-- Live Response Monitor -->
+          <div class="response-monitor" id="response-monitor">
+            <div class="response-header">
+              <div class="res-status-group">
+                <span class="status-badge status-idle" id="res-status-badge">READY</span>
+                <span class="res-time-badge" id="res-time">0 ms</span>
+              </div>
+              <div class="rate-limit-meter" id="rate-limit-meter-wrap">
+                <span class="meter-label">Tokens Left: <strong id="res-limit-remaining">--</strong> / <span id="res-limit-total">--</span></span>
+                <div class="meter-bar-track">
+                  <div class="meter-bar-fill" id="meter-bar-fill" style="width: 100%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="response-tabs-wrap">
+              <div class="response-tabs">
+                <button class="res-tab active" data-target="res-body-box">Response Body</button>
+                <button class="res-tab" data-target="res-headers-box">Response Headers</button>
+              </div>
+              <div class="code-box active" id="res-body-box">
+                <pre><code id="res-body-code">// Send a request above to inspect response</code></pre>
+              </div>
+              <div class="code-box" id="res-headers-box">
+                <pre><code id="res-headers-code">// X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After, X-Correlation-ID...</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left"><span class="dot-online"></span><span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span></div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item active">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item active" style="border-color:var(--primary-green); color:var(--primary-green);">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

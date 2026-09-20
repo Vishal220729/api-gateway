@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>Cloud Integration Hub - API Gateway</title>
+  <meta name="description" content="Enterprise Cloud Integration Hub for API Gateway with multi-region edge topology, AWS EventBridge, Slack alerts, and S3 log archival.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">Enterprise Multi-Region Cloud Integration Hub</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">⚡ Flush Buckets</button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link active">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <!-- Multi-Region Edge Topology -->
+      <section class="cloud-topology-section glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Multi-Region Global Edge Topology</h2>
+            <p>Live replication status and cross-region latencies across AWS &amp; Edge nodes</p>
+          </div>
+          <span class="tag-pill">GLOBAL MESH</span>
+        </div>
+        <div class="regions-grid" id="regions-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+      <!-- Two Column: Webhooks & S3 Archival -->
+      <div class="two-col-grid">
+        <!-- Left: Cloud Webhook Alerts -->
+        <section class="webhooks-panel glow-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>Cloud Webhook Alerts (EventBridge / Slack)</h2>
+              <p>Dispatch real-time HMAC-signed security and rate-limit alerts</p>
+            </div>
+            <button id="btn-test-cloud-webhook" class="btn btn-tiny btn-secondary">⚡ Send Test Alert</button>
+          </div>
+
+          <div class="webhook-form">
+            <div class="input-grid-webhook">
+              <input type="text" id="input-webhook-name" placeholder="Webhook Name (e.g. Datadog SIEM)" class="mono-input">
+              <input type="text" id="input-webhook-url" placeholder="https://events.provider.com/hook" class="mono-input">
+              <select id="select-webhook-provider" class="mono-input select-input">
+                <option value="slack">Slack Channel</option>
+                <option value="aws_eventbridge">AWS EventBridge</option>
+                <option value="datadog">Datadog Event</option>
+                <option value="generic">Custom Cloud Webhook</option>
+              </select>
+              <button id="btn-add-webhook" class="btn btn-primary btn-tiny">Add Webhook</button>
+            </div>
+          </div>
+
+          <div class="table-scroll" style="max-height: 250px; margin-top: 14px;">
+            <table class="data-table" id="webhooks-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Provider</th>
+                  <th>Events</th>
+                  <th>Signature</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="webhooks-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Right: Cloud Storage Log Archival (S3 / GCS) -->
+        <section class="archive-panel glow-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>Cloud Storage Log Archival (AWS S3)</h2>
+              <p>Sync rolling traffic logs to compressed S3 / GCS bucket archives</p>
+            </div>
+            <button id="btn-sync-s3-archive" class="btn btn-tiny btn-primary">☁️ Sync to S3 Bucket</button>
+          </div>
+
+          <div class="s3-stats-banner">
+            <div class="s3-stat">
+              <span class="s3-label">Target Bucket</span>
+              <strong class="mono text-green">s3://api-gateway-traffic-logs/</strong>
+            </div>
+            <div class="s3-stat">
+              <span class="s3-label">Compression</span>
+              <strong class="mono text-cyan">GZIP (JSONL)</strong>
+            </div>
+            <div class="s3-stat">
+              <span class="s3-label">Retention</span>
+              <strong class="mono text-yellow">90 Days Glacier</strong>
+            </div>
+          </div>
+
+          <div class="table-scroll" style="max-height: 250px; margin-top: 14px;">
+            <table class="data-table" id="archives-table">
+              <thead>
+                <tr>
+                  <th>Archive ID</th>
+                  <th>S3 URI</th>
+                  <th>Records</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="archives-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Serverless Cloud Functions -->
+      <section class="serverless-panel glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Serverless Cloud Function Upstreams</h2>
+            <p>Directly route API paths to AWS Lambda, Google Cloud Functions, or Cloudflare Workers</p>
+          </div>
+          <span class="tag-pill">SERVERLESS</span>
+        </div>
+        <div class="serverless-cards-grid">
+          <div class="serverless-card">
+            <div class="sc-header">
+              <span class="sc-provider">AWS Lambda</span>
+              <span class="node-status-badge node-healthy"><span class="pulse-dot green"></span>CONNECTED</span>
+            </div>
+            <div class="sc-body">
+              <div>Handler: <code class="mono">arn:aws:lambda:us-east-1:123456789:function:orderProcessor</code></div>
+              <div>Tracing: <code class="mono text-cyan">X-Amzn-Trace-Id injected</code></div>
+            </div>
+          </div>
+
+          <div class="serverless-card">
+            <div class="sc-header">
+              <span class="sc-provider">Google Cloud Functions</span>
+              <span class="node-status-badge node-healthy"><span class="pulse-dot green"></span>CONNECTED</span>
+            </div>
+            <div class="sc-body">
+              <div>Endpoint: <code class="mono">https://us-central1-gcp-project.cloudfunctions.net/authHook</code></div>
+              <div>Auth: <code class="mono text-green">OIDC IAM Token</code></div>
+            </div>
+          </div>
+
+          <div class="serverless-card">
+            <div class="sc-header">
+              <span class="sc-provider">Cloudflare Workers</span>
+              <span class="node-status-badge node-healthy"><span class="pulse-dot green"></span>CONNECTED</span>
+            </div>
+            <div class="sc-body">
+              <div>Script: <code class="mono">edge-geo-router.worker.js</code></div>
+              <div>TTL: <code class="mono text-yellow">0ms Edge Execution</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left"><span class="dot-online"></span><span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span></div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item active">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item active" style="border-color:var(--primary-green); color:var(--primary-green);">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

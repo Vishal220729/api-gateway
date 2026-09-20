@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>API Gateway &amp; Distributed Rate Limiter Dashboard</title>
+  <meta name="description" content="High-performance real-time dashboard for Distributed Rate Limiter and Go API Gateway with Redis sliding-window metrics, WAF, and Circuit Breakers.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Header / Nav -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">Distributed Rate Limiter, WAF &amp; Reverse Proxy</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge">
+          <span class="pulse-dot"></span>
+          <span>GATEWAY ONLINE</span>
+          <span class="port-tag">:8080</span>
+        </div>
+        <div class="badge redis-badge" id="redis-status-badge">
+          <span class="pulse-dot green"></span>
+          <span>REDIS CONNECTED</span>
+          <span class="port-tag">:6379</span>
+        </div>
+        <div class="badge sse-badge" id="sse-status-badge">
+          <span class="pulse-dot green"></span>
+          <span>SSE LIVE</span>
+        </div>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">
+          ⚡ Flush Buckets
+        </button>
+        <button id="btn-open-route-modal" class="btn btn-primary" title="Add a new dynamic route without restarting">
+          ➕ New Route
+        </button>
+        <button id="btn-open-specs" class="btn btn-secondary" title="View System Architecture &amp; In-Depth Specs">
+          📋 Specs
+        </button>
+        <button id="refresh-stats-btn" class="btn btn-ghost" title="Refresh Live Metrics">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Sync
+        </button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link active">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Real-Time Live Traffic Engine Control Bar -->
+    <section class="realtime-control-bar">
+      <div class="rt-status-wrap">
+        <span class="pulse-dot green" id="rt-pulse-dot"></span>
+        <span class="rt-label">LIVE REAL-TIME STREAM:</span>
+        <span class="rt-badge text-green" id="rt-engine-status">ACTIVE</span>
+        <span class="rt-clients-pill" id="rt-connected-clients">🟢 1 Device Connected</span>
+      </div>
+      <div class="rt-controls-group">
+        <button id="btn-toggle-simulator" class="btn btn-tiny btn-secondary">⏸️ Pause Stream</button>
+        <div class="rt-slider-wrap">
+          <label for="slider-simulator-rps">Velocity: <span id="val-sim-rps" class="mono text-green">12</span> req/s</label>
+          <input type="range" id="slider-simulator-rps" min="2" max="60" value="12" class="range-slider">
+        </div>
+        <button id="btn-sim-burst" class="btn btn-tiny btn-warning">🔥 Burst 50 Reqs</button>
+        <button id="btn-open-copilot-banner" class="btn btn-tiny btn-primary">🤖 Ask AI Copilot</button>
+      </div>
+    </section>
+
+    <!-- Main Dashboard Body -->
+    <main class="dashboard-content">
+      <!-- Real-Time Threat Radar & Token Bucket Visualizer Grid -->
+      <section class="radar-token-grid">
+        <!-- Global Threat Radar Map -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>🌍 Real-Time Global Threat &amp; Traffic Radar</h3>
+              <p class="panel-desc">Live inbound traffic pings from global edge regions with WAF threat detection.</p>
+            </div>
+            <div class="radar-legend">
+              <span class="legend-item"><span class="dot-green"></span> 200 OK</span>
+              <span class="legend-item"><span class="dot-yellow"></span> 429 Limit</span>
+              <span class="legend-item"><span class="dot-red"></span> 403 Threat</span>
+            </div>
+          </div>
+          <div class="radar-canvas-container">
+            <canvas id="threat-radar-canvas" width="680" height="240"></canvas>
+          </div>
+        </div>
+
+        <!-- Token Bucket Liquid Visualizer -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h3>🪣 Sliding Window Token Bucket</h3>
+              <p class="panel-desc">Real-time token consumption and atomic refill visualization.</p>
+            </div>
+          </div>
+          <div class="token-bucket-container">
+            <div class="bucket-visual">
+              <div class="bucket-liquid" id="bucket-liquid-fill" style="height: 85%;">
+                <div class="liquid-wave"></div>
+              </div>
+              <div class="bucket-label">
+                <span class="bucket-tokens-num" id="bucket-tokens-num">85</span>
+                <span class="bucket-tokens-cap">/ 100 Tokens</span>
+              </div>
+            </div>
+            <div class="bucket-stats">
+              <div class="b-stat"><span>Refill Rate:</span> <strong class="mono text-green">100 tokens/sec</strong></div>
+              <div class="b-stat"><span>Leak Rate:</span> <strong class="mono text-yellow" id="b-stat-leak">12 req/s</strong></div>
+              <div class="b-stat"><span>Bucket Health:</span> <strong class="mono text-green" id="b-stat-health">NORMAL</strong></div>
+              <div class="b-stat"><span>Lua Script:</span> <code class="mono">EVALSHA 1ms</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Metric Cards Grid -->
+      <section class="metrics-grid">
+        <div class="metric-card glow-card">
+          <div class="metric-header">
+            <span class="metric-title">TOTAL PROXIED REQUESTS</span>
+            <span class="metric-icon">📊</span>
+          </div>
+          <div class="metric-value" id="val-total-requests">0</div>
+          <div class="metric-sub">
+            <span class="trend-up" id="val-rps">+0 req/s</span> past 5s window
+          </div>
+          <div class="card-bar-bg"><div class="card-bar-fill" style="width: 100%;"></div></div>
+        </div>
+
+        <div class="metric-card glow-card">
+          <div class="metric-header">
+            <span class="metric-title">RATE-LIMITED BLOCKS (429)</span>
+            <span class="metric-icon">🛡️</span>
+          </div>
+          <div class="metric-value text-accent-yellow" id="val-rate-limited">0</div>
+          <div class="metric-sub">Sliding-window counters enforced</div>
+          <div class="card-bar-bg"><div class="card-bar-fill yellow" style="width: 100%;"></div></div>
+        </div>
+
+        <div class="metric-card glow-card">
+          <div class="metric-header">
+            <span class="metric-title">AVERAGE LATENCY</span>
+            <span class="metric-icon">⚡</span>
+          </div>
+          <div class="metric-value text-accent-green" id="val-avg-latency">&lt; 1 ms</div>
+          <div class="metric-sub">Limiter Redis overhead: <strong class="mono text-green">&lt;0.5ms</strong></div>
+          <div class="card-bar-bg"><div class="card-bar-fill" style="width: 95%;"></div></div>
+        </div>
+
+        <div class="metric-card glow-card">
+          <div class="metric-header">
+            <span class="metric-title">ACTIVE REDIS BUCKETS</span>
+            <span class="metric-icon">🗄️</span>
+          </div>
+          <div class="metric-value text-accent-cyan" id="val-active-buckets">0</div>
+          <div class="metric-sub">Hash tags: <code class="mono">{client_id|ip}</code></div>
+          <div class="card-bar-bg"><div class="card-bar-fill cyan" style="width: 75%;"></div></div>
+        </div>
+      </section>
+
+      <!-- Charts & Visual Section -->
+      <section class="chart-section glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Real-Time Traffic Throughput &amp; Latency</h2>
+            <p>Live stream of incoming requests processed by Go reverse proxy and Redis sliding-window filter</p>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot green"></span> Requests / sec</span>
+            <span class="legend-item"><span class="legend-dot yellow"></span> 429 Throttle Events</span>
+          </div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="traffic-canvas" width="1000" height="200"></canvas>
+        </div>
+      </section>
+
+      <!-- FEATURE 1: Live Traffic Stream (Real-Time Request Logger) -->
+      <section class="traffic-stream-section glow-panel" id="traffic-stream-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Live Traffic Stream (Real-Time Logger)</h2>
+            <p>Real-time rolling inspection of the last 50 requests passing through the API gateway</p>
+          </div>
+          <div class="stream-controls">
+            <div class="filter-pills" id="log-filter-pills">
+              <button class="pill active" data-filter="ALL">ALL</button>
+              <button class="pill" data-filter="200">200 OK</button>
+              <button class="pill text-yellow" data-filter="429">429 THROTTLED</button>
+              <button class="pill text-red" data-filter="BLOCKED">401/403/503 BLOCKED</button>
+            </div>
+            <button id="btn-export-csv" class="btn btn-tiny btn-ghost" title="Export traffic stream to CSV">📥 CSV</button>
+            <button id="btn-export-json" class="btn btn-tiny btn-ghost" title="Export traffic stream to JSON">📥 JSON</button>
+            <span class="tag-pill live-tag"><span class="pulse-dot green"></span> STREAMING</span>
+          </div>
+        </div>
+        <div class="table-scroll stream-table-wrap">
+          <table class="data-table log-table" id="traffic-log-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Client IP</th>
+                <th>Status</th>
+                <th>Cache</th>
+                <th>Latency</th>
+                <th>Tokens Left</th>
+                <th>Trace</th>
+              </tr>
+            </thead>
+            <tbody id="traffic-log-tbody">
+              <tr>
+                <td colspan="9" class="empty-cell">Listening for live traffic... Send a request to see logs stream in real time.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Two Column Grid: Playground & Sidebar -->
+      <div class="two-col-grid">
+        <!-- Left: Interactive API Request Playground -->
+        <section class="playground-panel glow-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>Interactive API Playground</h2>
+              <p>Simulate requests live, test JWT auth, WAF firewall rules, and rate limit throttling</p>
+            </div>
+            <span class="tag-pill">LIVE TESTER</span>
+          </div>
+
+          <div class="playground-body">
+            <!-- Endpoint Selector Tabs -->
+            <div class="route-tabs" id="route-tabs">
+              <button class="tab-btn active" data-path="/api/orders" data-method="GET" data-auth="false">
+                <span class="method-tag get">GET</span>
+                <span>/api/orders</span>
+                <span class="mini-pill">IP Limiter (100/min)</span>
+              </button>
+              <button class="tab-btn" data-path="/api/users" data-method="GET" data-auth="true">
+                <span class="method-tag get">GET</span>
+                <span>/api/users</span>
+                <span class="mini-pill lock">🔒 JWT Auth (50/min)</span>
+              </button>
+              <button class="tab-btn" data-path="/api/public" data-method="GET" data-auth="false">
+                <span class="method-tag get">GET</span>
+                <span>/api/public</span>
+                <span class="mini-pill">Public (5000/min)</span>
+              </button>
+            </div>
+
+            <!-- Parameters Grid -->
+            <div class="param-group">
+              <div class="input-row">
+                <label for="input-target-url">Target Request URL</label>
+                <div class="input-with-action">
+                  <span class="input-prefix" id="disp-method">GET</span>
+                  <input type="text" id="input-target-url" value="/api/orders" class="mono-input" readonly>
+                </div>
+              </div>
+
+              <div class="input-grid-2">
+                <div class="input-row">
+                  <label for="input-client-ip">Client IP / X-Forwarded-For</label>
+                  <input type="text" id="input-client-ip" value="192.168.1.100" class="mono-input" placeholder="IP Address">
+                </div>
+                <div class="input-row">
+                  <label for="input-client-id">Client ID (for JWT Auth)</label>
+                  <input type="text" id="input-client-id" value="client-vip-42" class="mono-input" placeholder="Client ID">
+                </div>
+              </div>
+
+              <div class="input-row" id="jwt-token-container">
+                <div class="label-with-btn">
+                  <label for="input-jwt-token">Authorization Bearer Token</label>
+                  <button type="button" id="btn-mint-token" class="btn btn-tiny">
+                    ⚡ Mint Valid Token
+                  </button>
+                </div>
+                <input type="text" id="input-jwt-token" class="mono-input" placeholder="Click 'Mint Valid Token' to sign with gateway secret">
+              </div>
+
+              <!-- API Key Field & Tier Presets -->
+              <div class="input-row" id="apikey-container">
+                <div class="label-with-btn">
+                  <label for="input-api-key">X-API-Key (Tiered Quota)</label>
+                  <div style="display:flex;gap:4px;">
+                    <button type="button" class="btn btn-tiny" id="btn-tier-free" title="Free Tier: 10 req/min">Free (10/m)</button>
+                    <button type="button" class="btn btn-tiny" id="btn-tier-pro" title="Pro Tier: 250 req/min">Pro (250/m)</button>
+                    <button type="button" class="btn btn-tiny" id="btn-tier-vip" title="Enterprise VIP: 2,500 req/min">VIP (2.5k/m)</button>
+                  </div>
+                </div>
+                <input type="text" id="input-api-key" class="mono-input" placeholder="Paste custom API key or click a preset tier above">
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons-row">
+              <button id="btn-send-single" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Send Request
+              </button>
+              <button id="btn-send-burst-10" class="btn btn-secondary">
+                ⚡ Burst 10x
+              </button>
+              <button id="btn-send-burst-55" class="btn btn-warning" title="Sends 55 requests to exceed 50 limit and trigger 429 Too Many Requests">
+                🚨 Trigger 429 Limit (55x)
+              </button>
+              <button id="btn-benchmark-quick" class="btn btn-ghost-green">
+                🚀 Run 1k Load Test
+              </button>
+            </div>
+
+            <!-- Live Response Monitor -->
+            <div class="response-monitor" id="response-monitor">
+              <div class="response-header">
+                <div class="res-status-group">
+                  <span class="status-badge status-idle" id="res-status-badge">READY</span>
+                  <span class="res-time-badge" id="res-time">0 ms</span>
+                </div>
+                <div class="rate-limit-meter" id="rate-limit-meter-wrap">
+                  <span class="meter-label">Tokens Left: <strong id="res-limit-remaining">--</strong> / <span id="res-limit-total">--</span></span>
+                  <div class="meter-bar-track">
+                    <div class="meter-bar-fill" id="meter-bar-fill" style="width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Headers & Payload Output -->
+              <div class="response-tabs-wrap">
+                <div class="response-tabs">
+                  <button class="res-tab active" data-target="res-body-box">Response Body</button>
+                  <button class="res-tab" data-target="res-headers-box">Response Headers</button>
+                </div>
+                <div class="code-box active" id="res-body-box">
+                  <pre><code id="res-body-code">// Send a request above to inspect downstream proxy response</code></pre>
+                </div>
+                <div class="code-box" id="res-headers-box">
+                  <pre><code id="res-headers-code">// X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After...</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Stack: Load Balancers, API Keys, Circuit Breakers & Policies -->
+        <div class="right-stack">
+          <!-- FEATURE: Multi-Node Load Balancer & Health Checks -->
+          <section class="lb-panel glow-panel" id="lb-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>Load Balancer &amp; Node Health</h2>
+                <p>Round-Robin active health pinger across backend instances</p>
+              </div>
+              <span class="tag-pill">NODES POOL</span>
+            </div>
+            <div class="nodes-list" id="nodes-list">
+              <!-- Rendered via JS -->
+            </div>
+          </section>
+
+          <!-- FEATURE: API Key Management & Tier Quotas -->
+          <section class="apikey-panel glow-panel" id="apikey-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>API Key Management &amp; Tiers</h2>
+                <p>Issue tiered access keys: Free (10/m), Pro (250/m), VIP (2.5k/m)</p>
+              </div>
+              <span class="tag-pill">API KEYS</span>
+            </div>
+            <div class="apikey-form">
+              <div class="input-grid-apikey">
+                <input type="text" id="input-key-owner" placeholder="Owner / App (e.g. Acme App)" class="mono-input">
+                <select id="select-key-tier" class="mono-input select-input">
+                  <option value="free">Free Tier (10 req/m)</option>
+                  <option value="pro">Pro Tier (250 req/m)</option>
+                  <option value="enterprise">Enterprise VIP (2,500 req/m)</option>
+                </select>
+                <button id="btn-generate-apikey" class="btn btn-secondary btn-tiny">⚡ Mint Key</button>
+              </div>
+            </div>
+            <div class="table-scroll" style="max-height:160px; margin-top: 10px;">
+              <table class="data-table" id="apikeys-table">
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Owner</th>
+                    <th>Tier</th>
+                    <th>Quota</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="apikeys-tbody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- FEATURE 2: Circuit Breaker Health Panel -->
+          <section class="circuits-panel glow-panel" id="circuits-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>Circuit Breakers (Upstreams)</h2>
+                <p>Automated downstream failure detection &amp; fast-fail recovery</p>
+              </div>
+              <span class="tag-pill">CIRCUITS</span>
+            </div>
+            <div class="circuits-list" id="circuits-list">
+              <!-- Rendered via JS -->
+            </div>
+          </section>
+
+          <!-- FEATURE 3: WAF Firewall IP Rules Panel -->
+          <section class="waf-panel glow-panel" id="waf-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>WAF IP Firewall</h2>
+                <p>Blacklist malicious IPs (403) or Whitelist VIPs (unlimited rate)</p>
+              </div>
+              <span class="tag-pill">FIREWALL</span>
+            </div>
+            <div class="waf-form">
+              <div class="input-grid-waf">
+                <input type="text" id="input-waf-ip" placeholder="IP (e.g. 192.168.1.50)" class="mono-input">
+                <select id="select-waf-type" class="mono-input select-input">
+                  <option value="blacklist">Blacklist (403)</option>
+                  <option value="whitelist">Whitelist (Bypass Limit)</option>
+                </select>
+                <input type="text" id="input-waf-reason" placeholder="Reason (e.g. Bot attack)" class="mono-input">
+                <button id="btn-add-waf-rule" class="btn btn-secondary btn-tiny">Add Rule</button>
+              </div>
+            </div>
+            <div class="table-scroll" style="max-height:160px; margin-top: 10px;">
+              <table class="data-table" id="waf-table">
+                <thead>
+                  <tr>
+                    <th>IP</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="waf-tbody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Active Redis Buckets -->
+          <section class="redis-panel glow-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>Active Redis Buckets</h2>
+                <p>Live sliding-window counters stored in Redis</p>
+              </div>
+              <button id="btn-refresh-buckets" class="btn btn-tiny btn-ghost">↻ Refresh</button>
+            </div>
+            <div class="table-scroll" style="max-height:180px;">
+              <table class="data-table" id="buckets-table">
+                <thead>
+                  <tr>
+                    <th>Bucket Key</th>
+                    <th>Count</th>
+                    <th>TTL</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="buckets-tbody">
+                  <tr>
+                    <td colspan="4" class="empty-cell">No active rate limit buckets yet. Send requests to create them!</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- FEATURE: Chaos Engineering & Fault Injection -->
+          <section class="chaos-panel glow-panel" id="chaos-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>Chaos Engineering Controller</h2>
+                <p>Inject synthetic latency &amp; 500 faults to chaos-test Circuit Breakers</p>
+              </div>
+              <span class="tag-pill">CHAOS</span>
+            </div>
+            <div class="chaos-body">
+              <div class="chaos-controls-grid">
+                <div class="chaos-control">
+                  <label>Artificial Delay: <strong id="val-chaos-latency" class="mono text-green">0 ms</strong></label>
+                  <input type="range" id="slider-chaos-latency" min="0" max="1500" step="50" value="0" class="range-slider">
+                </div>
+                <div class="chaos-control">
+                  <label>Fault Injection Rate (500): <strong id="val-chaos-fault" class="mono text-yellow">0%</strong></label>
+                  <div class="fault-btn-group" id="fault-btn-group">
+                    <button class="btn btn-tiny pill-fault active" data-fault="0">0% (Off)</button>
+                    <button class="btn btn-tiny pill-fault" data-fault="20">20%</button>
+                    <button class="btn btn-tiny pill-fault" data-fault="50">50%</button>
+                    <button class="btn btn-tiny pill-fault" data-fault="100">100%</button>
+                  </div>
+                </div>
+              </div>
+              <div class="chaos-footer">
+                <button id="btn-apply-chaos" class="btn btn-primary btn-tiny">⚡ Apply Chaos Settings</button>
+                <button id="btn-reset-chaos" class="btn btn-ghost btn-tiny">Reset</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- FEATURE: GeoIP Country Firewall -->
+          <section class="geoip-panel glow-panel" id="geoip-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>GeoIP Country Firewall</h2>
+                <p>Block or allow incoming traffic by ISO-3166 country code</p>
+              </div>
+              <span class="tag-pill">GEOIP</span>
+            </div>
+            <div class="geoip-form">
+              <div class="input-grid-geoip">
+                <input type="text" id="input-geoip-country" placeholder="Country (e.g. RU, CN, KP)" class="mono-input" maxlength="2">
+                <select id="select-geoip-action" class="mono-input select-input">
+                  <option value="block">Block (403)</option>
+                  <option value="allow">Allow</option>
+                </select>
+                <input type="text" id="input-geoip-reason" placeholder="Reason (e.g. Sanctions)" class="mono-input">
+                <button id="btn-add-geoip-rule" class="btn btn-secondary btn-tiny">Add Rule</button>
+              </div>
+            </div>
+            <div class="table-scroll" style="max-height:140px; margin-top: 10px;">
+              <table class="data-table" id="geoip-table">
+                <thead>
+                  <tr>
+                    <th>Country</th>
+                    <th>Action</th>
+                    <th>Reason</th>
+                    <th>Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="geoip-tbody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Configured Routes Overview -->
+          <section class="routes-panel glow-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <h2>Configured Route Policies</h2>
+                <p>Longest-prefix matches and per-route rate limits</p>
+              </div>
+              <span class="tag-pill">POLICIES</span>
+            </div>
+            <div class="route-cards-list" id="route-cards-list">
+              <!-- Rendered via JS -->
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- FEATURE: Interactive Architecture Request Pipeline Flow -->
+      <section class="pipeline-section glow-panel" id="pipeline-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Interactive Request Architecture Pipeline</h2>
+            <p>Live visual data flow across gateway subsystems</p>
+          </div>
+          <span class="tag-pill">DATA PIPELINE</span>
+        </div>
+        <div class="pipeline-flow-diagram">
+          <div class="flow-stage" id="stage-client">
+            <span class="stage-icon">💻</span>
+            <span class="stage-name">Client</span>
+            <span class="stage-sub">HTTP/1.1</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-waf">
+            <span class="stage-icon">🧱</span>
+            <span class="stage-name">WAF / GeoIP</span>
+            <span class="stage-sub">IP &amp; Country</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-security">
+            <span class="stage-icon">🛡️</span>
+            <span class="stage-name">Security</span>
+            <span class="stage-sub">OWASP &amp; Size</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-apikey">
+            <span class="stage-icon">🔑</span>
+            <span class="stage-name">API Key / Auth</span>
+            <span class="stage-sub">Tier Quota</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-limiter">
+            <span class="stage-icon">⚡</span>
+            <span class="stage-name">Rate Limiter</span>
+            <span class="stage-sub">Sliding Lua</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-cache">
+            <span class="stage-icon">🗄️</span>
+            <span class="stage-name">HTTP Cache</span>
+            <span class="stage-sub">Redis TTL</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-circuit">
+            <span class="stage-icon">🔌</span>
+            <span class="stage-name">Breaker &amp; LB</span>
+            <span class="stage-sub">Round-Robin</span>
+          </div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-stage" id="stage-upstream">
+            <span class="stage-icon">🚀</span>
+            <span class="stage-name">Upstream</span>
+            <span class="stage-sub">Microservice</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- In-Depth Technical Specifications Section -->
+      <section class="specs-section glow-panel" id="specs-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>System Architecture &amp; Deep Technical Specifications</h2>
+            <p>Production-grade design details: sliding window math, atomic Redis Lua script, concurrency models, and verified benchmarks</p>
+          </div>
+          <span class="tag-pill">FULL SPECS</span>
+        </div>
+
+        <!-- Specifications Tab Navigation -->
+        <div class="specs-tabs" id="specs-tabs">
+          <button class="spec-tab-btn active" data-tab="spec-algo">⚡ Sliding Window Math &amp; Lua</button>
+          <button class="spec-tab-btn" data-tab="spec-concurrency">🌐 Concurrency &amp; Transport Pool</button>
+          <button class="spec-tab-btn" data-tab="spec-security">🛡️ Security &amp; Fail-Open Pipeline</button>
+          <button class="spec-tab-btn" data-tab="spec-benchmarks">🚀 Verified Benchmarks (10.5k req/s)</button>
+          <button class="spec-tab-btn" data-tab="spec-config">⚙️ Route Schema &amp; Env Config</button>
+        </div>
+
+        <!-- Spec Content 1: Algorithm & Lua -->
+        <div class="spec-content active" id="spec-algo">
+          <div class="spec-grid-2">
+            <div class="spec-card">
+              <h3>Mathematical Formulation</h3>
+              <p class="spec-text">To prevent boundary spikes without storing individual request timestamps in RAM, the sliding window counter blends two fixed counters with a dynamic overlap weight:</p>
+              <div class="formula-box">
+                <code>estimated_count = (previous_window_count * overlap_weight) + current_window_count</code>
+                <code>overlap_weight = (window_size - elapsed_in_current_window) / window_size</code>
+              </div>
+              <ul class="spec-list">
+                <li><strong>O(1) Space Complexity:</strong> Stores only two integer keys per bucket instead of $O(N)$ sliding logs.</li>
+                <li><strong>Cluster Hash Tagging:</strong> Both keys use <code>ratelimit:{key}:window</code> so they reside on the same Redis cluster hash slot (<code>CRC16 % 16384</code>).</li>
+              </ul>
+            </div>
+            <div class="spec-card">
+              <h3>Atomic Redis Lua Script (EVALSHA)</h3>
+              <p class="spec-text">The entire rate decision executes atomically inside Redis in one network round-trip, preventing race conditions across distributed gateway instances:</p>
+              <pre class="spec-code"><code>local weight = (window_ms - elapsed_in_current) / window_ms
+if weight < 0 then weight = 0 end
+local estimated = (previous_count * weight) + current_count
+
+if estimated >= limit then
+    local ttl = redis.call("PTTL", current_key)
+    return {0, 0, ttl} -- Throttled: 429
+end
+local new_count = redis.call("INCR", current_key)
+if new_count == 1 then
+    redis.call("PEXPIRE", current_key, window_ms * 2)
+end
+return {1, limit - math.floor(estimated) - 1, window_ms - elapsed_in_current}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spec Content 2: Concurrency & Network -->
+        <div class="spec-content" id="spec-concurrency">
+          <table class="specs-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Parameter</th>
+                <th>Configured Value</th>
+                <th>Engineering Rationale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Reverse Proxy</td>
+                <td><code>MaxIdleConns</code></td>
+                <td><strong class="mono text-green">10,000</strong></td>
+                <td>Global idle pool capacity across all microservices.</td>
+              </tr>
+              <tr>
+                <td>Reverse Proxy</td>
+                <td><code>MaxIdleConnsPerHost</code></td>
+                <td><strong class="mono text-green">2,000</strong></td>
+                <td>Eliminates Windows ephemeral TCP socket exhaustion under 10k req/s load.</td>
+              </tr>
+              <tr>
+                <td>Reverse Proxy</td>
+                <td><code>KeepAlive</code></td>
+                <td><strong class="mono text-green">60s</strong></td>
+                <td>Reuses established TCP sessions to downstream services.</td>
+              </tr>
+              <tr>
+                <td>Redis Client</td>
+                <td><code>PoolSize</code></td>
+                <td><strong class="mono text-green">1,000</strong></td>
+                <td>High-concurrency pool for simultaneous sub-millisecond Redis evaluations.</td>
+              </tr>
+              <tr>
+                <td>Redis Client</td>
+                <td><code>MinIdleConns</code></td>
+                <td><strong class="mono text-green">100</strong></td>
+                <td>Pre-warmed sockets ready to immediately absorb sudden traffic spikes.</td>
+              </tr>
+              <tr>
+                <td>Redis Client</td>
+                <td><code>Dial / Read / Write</code></td>
+                <td><strong class="mono">2s / 100ms / 100ms</strong></td>
+                <td>Strict bounded timeout prevents Redis from holding up HTTP traffic.</td>
+              </tr>
+              <tr>
+                <td>HTTP Server</td>
+                <td><code>Read / Write Timeouts</code></td>
+                <td><strong class="mono">5s / 10s</strong></td>
+                <td>Mitigates Slowloris and hanging connection attacks.</td>
+              </tr>
+              <tr>
+                <td>HTTP Server</td>
+                <td><code>ShutdownTimeout</code></td>
+                <td><strong class="mono">15s</strong></td>
+                <td>Gracefully drains all in-flight requests before daemon process terminates.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Spec Content 3: Security & Fail-Open -->
+        <div class="spec-content" id="spec-security">
+          <div class="spec-grid-2">
+            <div class="spec-card">
+              <h3>Middleware Execution Chain</h3>
+              <ol class="pipeline-list">
+                <li><strong>WAF IP Firewall:</strong> Blocks blacklisted IPs with <code>403 Forbidden</code>; whitelists VIP IPs to bypass rate limits.</li>
+                <li><strong>CORS Middleware:</strong> Validates origin allow-list and immediately resolves preflight <code>OPTIONS</code> requests.</li>
+                <li><strong>Per-Route JWT Authentication:</strong> Validates HMAC-SHA256 (<code>HS256</code>) Bearer tokens. Extracts <code>client_id</code> into request context. Rejects invalid requests with <code>401 Unauthorized</code>.</li>
+                <li><strong>Sliding Window Rate Limiter:</strong> Matches longest route prefix, derives bucket key, executes atomic Lua script, sets <code>X-RateLimit-*</code> headers or triggers <code>429</code>.</li>
+                <li><strong>Circuit Breaker:</strong> Trips to <code>OPEN</code> state on repeated 5xx/connection failures, fast-failing with <code>503</code>.</li>
+                <li><strong>Reverse Proxy (httputil):</strong> Injects <code>X-Forwarded-Host</code>, sets <code>X-Gateway</code>, and forwards to upstream microservice.</li>
+              </ol>
+            </div>
+            <div class="spec-card">
+              <h3>Fail-Open High Availability Guarantee</h3>
+              <p class="spec-text">In high-scale enterprise production, an outage in the rate limiter (e.g. temporary Redis network partition) must <strong>never take down user-facing services</strong>.</p>
+              <div class="failopen-box">
+                <div class="fo-title">🛡️ Fail-Open Behavior</div>
+                <p>If Redis times out or fails, the limiter catches the error, increments the Prometheus counter <code>gateway_rate_limiter_errors_total</code>, and allows the request through to downstream services.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spec Content 4: Verified Benchmarks -->
+        <div class="spec-content" id="spec-benchmarks">
+          <table class="specs-table">
+            <thead>
+              <tr>
+                <th>Benchmark Metric</th>
+                <th>Measured Result</th>
+                <th>Industry SLA Standard</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Peak Measured Throughput</td>
+                <td><strong class="mono text-green">10,501.6 requests / sec</strong></td>
+                <td>&gt; 5,000 req/s</td>
+                <td><span class="tag-pill">VERIFIED</span></td>
+              </tr>
+              <tr>
+                <td>Average Processing Latency</td>
+                <td><strong class="mono text-green">124 µs – 326 µs</strong></td>
+                <td>&lt; 5.0 ms</td>
+                <td><span class="tag-pill">SUB-MILLISECOND</span></td>
+              </tr>
+              <tr>
+                <td>Rate Limiter Overhead</td>
+                <td><strong class="mono text-green">&lt; 0.50 ms</strong></td>
+                <td>&lt; 2.0 ms</td>
+                <td><span class="tag-pill">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td>p90 Latency (90% callers)</td>
+                <td><strong class="mono text-green">515 µs – 555 µs</strong></td>
+                <td>&lt; 10.0 ms</td>
+                <td><span class="tag-pill">EXCELLENT</span></td>
+              </tr>
+              <tr>
+                <td>p95 Latency (95% callers)</td>
+                <td><strong class="mono text-green">541 µs – 877 µs</strong></td>
+                <td>&lt; 15.0 ms</td>
+                <td><span class="tag-pill">EXCELLENT</span></td>
+              </tr>
+              <tr>
+                <td>p99 Latency (99% callers)</td>
+                <td><strong class="mono text-green">3.15 ms – 9.93 ms</strong></td>
+                <td>&lt; 35.0 ms</td>
+                <td><span class="tag-pill">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Success / Accuracy Rate</td>
+                <td><strong class="mono text-green">100.00% (0 errors out of 80,000+)</strong></td>
+                <td>99.99%</td>
+                <td><span class="tag-pill">ZERO DROP</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Spec Content 5: Config Schema -->
+        <div class="spec-content" id="spec-config">
+          <div class="spec-grid-2">
+            <div class="spec-card">
+              <h3>Per-Route Policy JSON Schema (routes.json)</h3>
+              <pre class="spec-code"><code>[
+  {
+    "path": "/api/users",
+    "upstream": "http://localhost:9001",
+    "methods": ["GET", "POST", "PUT", "DELETE"],
+    "rate_limit": 50,
+    "window_sec": 60,
+    "key_type": "client_id",
+    "require_auth": true
+  },
+  {
+    "path": "/api/orders",
+    "upstream": "http://localhost:9002",
+    "methods": ["GET", "POST"],
+    "rate_limit": 100,
+    "window_sec": 60,
+    "key_type": "ip",
+    "require_auth": false
+  }
+]</code></pre>
+            </div>
+            <div class="spec-card">
+              <h3>Environment Configuration Variables</h3>
+              <ul class="spec-list">
+                <li><code>PORT</code>: HTTP listening port (Default: <code>8080</code>)</li>
+                <li><code>REDIS_ADDR</code>: Redis instance or cluster endpoint (Default: <code>localhost:6379</code>)</li>
+                <li><code>JWT_SECRET</code>: HMAC secret for JWT validation</li>
+                <li><code>DEFAULT_RATE_LIMIT</code>: Fallback limit for unmatched routes (Default: <code>100</code>)</li>
+                <li><code>DEFAULT_WINDOW_SEC</code>: Fallback window in seconds (Default: <code>60</code>)</li>
+                <li><code>CORS_ALLOWED_ORIGINS</code>: Comma-separated allowlist or <code>*</code></li>
+                <li><code>ROUTES_CONFIG_PATH</code>: Path to JSON routes config file</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal: Add Dynamic Route -->
+    <div class="modal-overlay" id="route-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>➕ Add Dynamic Route (Hot-Reload)</h3>
+          <button class="modal-close" id="btn-close-route-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="input-row">
+            <label for="new-route-path">Path Prefix</label>
+            <input type="text" id="new-route-path" placeholder="/api/payments" class="mono-input">
+          </div>
+          <div class="input-row">
+            <label for="new-route-upstream">Upstream Service URL</label>
+            <input type="text" id="new-route-upstream" placeholder="http://localhost:9004" class="mono-input">
+          </div>
+          <div class="input-grid-2">
+            <div class="input-row">
+              <label for="new-route-limit">Rate Limit (Max Reqs)</label>
+              <input type="number" id="new-route-limit" value="200" class="mono-input">
+            </div>
+            <div class="input-row">
+              <label for="new-route-window">Window (Seconds)</label>
+              <input type="number" id="new-route-window" value="60" class="mono-input">
+            </div>
+          </div>
+          <div class="input-grid-2">
+            <div class="input-row">
+              <label for="new-route-keytype">Rate Limit Key Type</label>
+              <select id="new-route-keytype" class="mono-input select-input">
+                <option value="ip">IP Address</option>
+                <option value="client_id">Client ID (JWT/Header)</option>
+              </select>
+            </div>
+            <div class="input-row">
+              <label>Authentication</label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="new-route-auth"> Require JWT Bearer
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="btn-cancel-route-modal">Cancel</button>
+          <button class="btn btn-primary" id="btn-submit-new-route">Save &amp; Hot-Reload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Trace Waterfall Inspection -->
+    <div class="modal-overlay" id="trace-modal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="pulse-dot green"></span>
+            <h3 id="trace-modal-title">Distributed Trace Waterfall</h3>
+          </div>
+          <button class="modal-close" id="btn-close-trace-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="trace-modal-body">
+          <!-- Dynamic waterfall rendered via JS -->
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="btn-dismiss-trace-modal">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="dot-online"></span>
+        <span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span>
+      </div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item active">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

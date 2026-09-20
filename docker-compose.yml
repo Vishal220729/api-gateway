@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------
+  # Redis 7 - Distributed Sliding-Window Rate Limit Storage
+  # -------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: api-gateway-redis
+    restart: always
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy noeviction
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - gateway-network
+
+  # -------------------------------------------------------------
+  # Go API Gateway & 8-Page Web Dashboard
+  # -------------------------------------------------------------
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-gateway-core
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - REDIS_ADDR=redis:6379
+      - ENVIRONMENT=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - gateway-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  gateway-network:
+    driver: bridge

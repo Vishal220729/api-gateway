@@ -1,0 +1,72 @@
+{
+  "name": "Antigravity Cloud API Gateway",
+  "short_name": "API Gateway",
+  "description": "High-Performance Cloud API Gateway & Distributed Rate Limiter with Real-Time Telemetry",
+  "start_url": "/intro.html",
+  "id": "/intro.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay",
+    "minimal-ui"
+  ],
+  "orientation": "portrait-primary",
+  "background_color": "#050806",
+  "theme_color": "#00ff88",
+  "categories": [
+    "developer",
+    "utilities",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Overview",
+      "short_name": "Overview",
+      "description": "Real-Time Metrics & Throughput Dashboard",
+      "url": "/index.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Traffic Stream",
+      "short_name": "Traffic",
+      "description": "Live Stream & Distributed Tracing",
+      "url": "/traffic.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Security & WAF",
+      "short_name": "Security",
+      "description": "Perimeter Firewall & GeoIP Rules",
+      "url": "/security.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cloud Hub",
+      "short_name": "Cloud",
+      "description": "Multi-Region Topology & S3 Archiving",
+      "url": "/cloud.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

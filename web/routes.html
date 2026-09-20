@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>Routes &amp; Load Balancing - API Gateway</title>
+  <meta name="description" content="Dynamic Route Management, Multi-Node Load Balancing, and Circuit Breaker Resilience for API Gateway.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">Dynamic Routes, Load Balancer &amp; Circuit Breakers</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <button id="btn-open-route-modal" class="btn btn-primary" title="Add a new dynamic route without restarting">➕ New Route</button>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">⚡ Flush Buckets</button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link active">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <!-- Canary A/B Traffic Splitting Panel -->
+      <section class="panel" style="margin-bottom: 24px;">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>🔀 Canary A/B Traffic Routing &amp; Gradual Rollout</h2>
+            <p class="panel-desc">Dynamically split inbound traffic between v1-stable and v2-canary deployments with zero downtime.</p>
+          </div>
+          <span class="badge" id="canary-status-pill"><span class="pulse-dot green"></span>CANARY ACTIVE</span>
+        </div>
+
+        <div class="canary-controller-grid">
+          <div class="canary-slider-box">
+            <div class="canary-ratio-labels">
+              <span class="text-green font-bold">Stable (v1): <span id="val-canary-stable-pct">80%</span></span>
+              <span class="text-yellow font-bold">Canary (v2): <span id="val-canary-canary-pct">20%</span></span>
+            </div>
+            <input type="range" id="slider-canary-weight" min="0" max="100" value="20" class="range-slider" style="width:100%; margin: 12px 0;">
+            <div class="canary-presets">
+              <button class="btn btn-tiny btn-ghost canary-preset-btn" data-weight="0">0% (100% Stable)</button>
+              <button class="btn btn-tiny btn-ghost canary-preset-btn" data-weight="10">10% Canary</button>
+              <button class="btn btn-tiny btn-ghost canary-preset-btn" data-weight="25">25% Canary</button>
+              <button class="btn btn-tiny btn-ghost canary-preset-btn" data-weight="50">50/50 Split</button>
+              <button class="btn btn-tiny btn-ghost canary-preset-btn" data-weight="100">100% Canary</button>
+            </div>
+          </div>
+
+          <div class="canary-stats-box">
+            <div class="b-stat"><span>Stable Node:</span> <code class="mono text-green" id="canary-stable-host">http://localhost:9001</code></div>
+            <div class="b-stat"><span>Canary Node:</span> <code class="mono text-yellow" id="canary-canary-host">http://localhost:9003</code></div>
+            <div class="b-stat"><span>Canary Requests:</span> <strong class="mono" id="canary-total-reqs">0</strong></div>
+            <div class="b-stat"><span>Canary Error Rate:</span> <strong class="mono text-green" id="canary-error-rate">0.0%</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="two-col-grid">
+        <!-- Left: Multi-Node Load Balancer & Health Checks -->
+        <section class="lb-panel glow-panel" id="lb-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>Multi-Node Load Balancer &amp; Health Pinger</h2>
+              <p>Round-Robin distribution across upstream instances with active /healthz ping</p>
+            </div>
+            <span class="tag-pill">NODES POOL</span>
+          </div>
+          <div class="nodes-list" id="nodes-list">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+
+        <!-- Right: Circuit Breaker Panel -->
+        <section class="circuits-panel glow-panel" id="circuits-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>Upstream Circuit Breakers</h2>
+              <p>Automated downstream failure detection &amp; fast-fail 503 recovery</p>
+            </div>
+            <span class="tag-pill">CIRCUITS</span>
+          </div>
+          <div class="circuits-list" id="circuits-list">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+      </div>
+
+      <!-- Configured Routes Overview -->
+      <section class="routes-panel glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Configured Route Policies (Longest-Prefix Match)</h2>
+            <p>Independent per-route rate limits, authentication requirements, and upstream targets</p>
+          </div>
+          <button id="btn-open-route-modal-2" class="btn btn-tiny btn-primary">➕ Add Dynamic Route</button>
+        </div>
+        <div class="route-cards-list" id="route-cards-list">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal: Add Dynamic Route -->
+    <div class="modal-overlay" id="route-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>➕ Add Dynamic Route (Hot-Reload)</h3>
+          <button class="modal-close" id="btn-close-route-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="input-row">
+            <label for="new-route-path">Path Prefix</label>
+            <input type="text" id="new-route-path" placeholder="/api/payments" class="mono-input">
+          </div>
+          <div class="input-row">
+            <label for="new-route-upstream">Upstream Service URL</label>
+            <input type="text" id="new-route-upstream" placeholder="http://localhost:9003" class="mono-input">
+          </div>
+          <div class="input-grid-2">
+            <div class="input-row">
+              <label for="new-route-limit">Rate Limit (Max Reqs)</label>
+              <input type="number" id="new-route-limit" value="200" class="mono-input">
+            </div>
+            <div class="input-row">
+              <label for="new-route-window">Window (Seconds)</label>
+              <input type="number" id="new-route-window" value="60" class="mono-input">
+            </div>
+          </div>
+          <div class="input-grid-2">
+            <div class="input-row">
+              <label for="new-route-keytype">Rate Limit Key Type</label>
+              <select id="new-route-keytype" class="mono-input select-input">
+                <option value="ip">IP Address</option>
+                <option value="client_id">Client ID (JWT/Header)</option>
+              </select>
+            </div>
+            <div class="input-row">
+              <label>Authentication</label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="new-route-auth"> Require JWT Bearer
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="btn-cancel-route-modal">Cancel</button>
+          <button class="btn btn-primary" id="btn-submit-new-route">Save &amp; Hot-Reload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left"><span class="dot-online"></span><span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span></div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item active">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item active" style="border-color:var(--primary-green); color:var(--primary-green);">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

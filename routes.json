@@ -1,0 +1,29 @@
+[
+  {
+    "path": "/api/users",
+    "upstream": "http://users-service:80",
+    "methods": ["GET", "POST", "PUT", "DELETE"],
+    "rate_limit": 50,
+    "window_sec": 60,
+    "key_type": "client_id",
+    "require_auth": true
+  },
+  {
+    "path": "/api/orders",
+    "upstream": "http://orders-service:80",
+    "methods": ["GET", "POST"],
+    "rate_limit": 1000,
+    "window_sec": 60,
+    "key_type": "ip",
+    "require_auth": false
+  },
+  {
+    "path": "/api/public",
+    "upstream": "http://orders-service:80",
+    "methods": ["GET"],
+    "rate_limit": 5000,
+    "window_sec": 60,
+    "key_type": "ip",
+    "require_auth": false
+  }
+]
