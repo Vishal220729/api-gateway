@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>Security &amp; WAF - API Gateway</title>
+  <meta name="description" content="Security Center for API Gateway: WAF IP Firewall, GeoIP country access control, and OWASP headers.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">WAF, GeoIP &amp; Perimeter Security Center</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <button id="btn-flush-buckets" class="btn btn-warning" title="Flush all active Redis rate limit buckets">⚡ Flush Buckets</button>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link active">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+      <div class="two-col-grid">
+        <!-- Left: WAF IP Firewall -->
+        <section class="waf-panel glow-panel" id="waf-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>WAF IP Firewall</h2>
+              <p>Blacklist malicious IPs (403 Forbidden) or Whitelist VIP clients (rate-limit bypass)</p>
+            </div>
+            <span class="tag-pill">IP FIREWALL</span>
+          </div>
+          <div class="waf-form">
+            <div class="input-grid-waf">
+              <input type="text" id="input-waf-ip" placeholder="IP Address (e.g. 192.168.1.50)" class="mono-input">
+              <select id="select-waf-type" class="mono-input select-input">
+                <option value="blacklist">Blacklist (403)</option>
+                <option value="whitelist">Whitelist (Bypass Limit)</option>
+              </select>
+              <input type="text" id="input-waf-reason" placeholder="Reason (e.g. Bot attack)" class="mono-input">
+              <button id="btn-add-waf-rule" class="btn btn-secondary btn-tiny">Add Rule</button>
+            </div>
+          </div>
+          <div class="table-scroll" style="max-height:350px; margin-top: 14px;">
+            <table class="data-table" id="waf-table">
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>Type</th>
+                  <th>Reason</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="waf-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Right: GeoIP Country-Level Firewall -->
+        <section class="geoip-panel glow-panel" id="geoip-panel">
+          <div class="panel-header">
+            <div class="panel-title-wrap">
+              <h2>GeoIP Country Firewall</h2>
+              <p>Block or allow incoming traffic by ISO-3166 country code</p>
+            </div>
+            <span class="tag-pill">GEOIP</span>
+          </div>
+          <div class="geoip-form">
+            <div class="input-grid-geoip">
+              <input type="text" id="input-geoip-country" placeholder="Country (e.g. RU, CN, KP)" class="mono-input" maxlength="2">
+              <select id="select-geoip-action" class="mono-input select-input">
+                <option value="block">Block (403)</option>
+                <option value="allow">Allow</option>
+              </select>
+              <input type="text" id="input-geoip-reason" placeholder="Reason (e.g. Sanctions)" class="mono-input">
+              <button id="btn-add-geoip-rule" class="btn btn-secondary btn-tiny">Add Rule</button>
+            </div>
+          </div>
+          <div class="table-scroll" style="max-height:350px; margin-top: 14px;">
+            <table class="data-table" id="geoip-table">
+              <thead>
+                <tr>
+                  <th>Country</th>
+                  <th>Action</th>
+                  <th>Reason</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody id="geoip-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Security Hardening & Guard Policies -->
+      <section class="specs-section glow-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>Active Perimeter Defense Policies</h2>
+            <p>Active defenses enforced on all inbound requests and outbound responses</p>
+          </div>
+          <span class="tag-pill">ACTIVE DEFENSES</span>
+        </div>
+
+        <div class="spec-grid-2">
+          <div class="spec-card">
+            <h3>OWASP Response Security Headers</h3>
+            <ul class="spec-list">
+              <li><code>Strict-Transport-Security</code>: <strong class="mono text-green">max-age=31536000; includeSubDomains</strong></li>
+              <li><code>X-Content-Type-Options</code>: <strong class="mono text-green">nosniff</strong> (prevents MIME sniffing)</li>
+              <li><code>X-Frame-Options</code>: <strong class="mono text-green">DENY</strong> (clickjacking protection)</li>
+              <li><code>Referrer-Policy</code>: <strong class="mono text-green">strict-origin-when-cross-origin</strong></li>
+              <li><code>X-XSS-Protection</code>: <strong class="mono text-green">1; mode=block</strong></li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h3>Payload Size &amp; DoS Mitigation</h3>
+            <ul class="spec-list">
+              <li><code>MaxBodySize</code>: <strong class="mono text-green">1 MB (1,048,576 bytes)</strong></li>
+              <li>Oversized payloads immediately return: <strong class="mono text-yellow">413 Payload Too Large</strong></li>
+              <li>Read timeout: <strong class="mono">5s</strong> | Idle connection timeout: <strong class="mono">120s</strong></li>
+              <li>Connection pool capacity: <strong class="mono text-green">10,000 total / 2,000 per host</strong></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Smart Anomaly Detection & Auto-Ban Engine Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>🤖 AI Autonomous Anomaly Detection &amp; Auto-Ban Engine</h2>
+            <p class="panel-desc">Real-time sliding-window heuristic scoring detects high-velocity probing, credential attacks, and automatically quarantines malicious IPs with live countdown timers.</p>
+          </div>
+          <span class="badge ai-badge"><span class="pulse-dot green"></span>AI HEURISTICS ACTIVE</span>
+        </div>
+
+        <div class="table-responsive" style="margin-top: 14px;">
+          <table class="data-table" id="autoban-table">
+            <thead>
+              <tr>
+                <th>Quarantined IP</th>
+                <th>Detected Anomaly</th>
+                <th>Risk Score</th>
+                <th>TTL Countdown</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="autoban-tbody">
+              <!-- Rendered dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left"><span class="dot-online"></span><span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span></div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item active">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

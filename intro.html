@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050806">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="API Gateway">
+  <title>Introduction &amp; Getting Started - APIGatewayCore</title>
+  <meta name="description" content="Introduction and Architecture Guide for APIGatewayCore: High-Performance Distributed Rate Limiter & Enterprise API Gateway in Go & Redis.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="logo-dark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="pwa-install-banner">
+    <div class="pwa-banner-icon">
+      <img src="icon-192.png" alt="App Icon">
+    </div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">API Gateway Mobile App</div>
+      <div class="pwa-banner-desc">Install for fast standalone access &amp; offline support</div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button id="btn-pwa-install" class="pwa-banner-install-btn">📲 Install</button>
+      <button id="btn-pwa-close" class="pwa-banner-close-btn" aria-label="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="logo-dark.png" alt="API Gateway Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>APIGateway<span>Core</span></h1>
+          <span class="subtext">Enterprise Distributed Rate Limiter &amp; Cloud Gateway</span>
+        </div>
+      </div>
+
+      <div class="nav-badges">
+        <div class="badge live-badge"><span class="pulse-dot"></span><span>GATEWAY ONLINE</span><span class="port-tag">:8080</span></div>
+        <div class="badge redis-badge" id="redis-status-badge"><span class="pulse-dot green"></span><span>REDIS CONNECTED</span><span class="port-tag">:6379</span></div>
+        <div class="badge sse-badge" id="sse-status-badge"><span class="pulse-dot green"></span><span>SSE LIVE</span></div>
+        <a href="index.html" class="btn btn-primary btn-tiny">🚀 Open Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Multi-Page Navigation Bar -->
+    <nav class="sub-nav-bar">
+      <a href="index.html" class="sub-nav-link">📊 Overview</a>
+      <a href="ai.html" class="sub-nav-link">🤖 AI Hub</a>
+      <a href="traffic.html" class="sub-nav-link">📡 Traffic</a>
+      <a href="security.html" class="sub-nav-link">🛡️ Security</a>
+      <a href="apikeys.html" class="sub-nav-link">🔑 API Keys</a>
+      <a href="routes.html" class="sub-nav-link">🌐 Routes &amp; LB</a>
+      <a href="cloud.html" class="sub-nav-link">☁️ Cloud Hub</a>
+      <a href="chaos.html" class="sub-nav-link">🧪 Chaos Lab</a>
+      <a href="intro.html" class="sub-nav-link active">📖 Intro &amp; Docs</a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-content" style="display:flex;flex-direction:column;gap:32px;">
+      
+      <!-- Hero Section -->
+      <section class="intro-hero">
+        <div class="hero-content">
+          <div class="hero-pill">⚡ ENTERPRISE DISTRIBUTED RATE LIMITER &amp; API GATEWAY</div>
+          <h1 class="hero-title">
+            Connect. Build. Scale.<br>
+            <span>Sub-Millisecond Speed &amp; Zero-Trust Resilience.</span>
+          </h1>
+          <p class="hero-desc">
+            A battle-tested, cloud-native API Gateway built from the ground up in Go and Redis. Featuring atomic sliding-window rate limiting, real-time Server-Sent Events (SSE) telemetry, multi-region edge mesh replication, and full-spectrum chaos fault tolerance.
+          </p>
+          <div class="hero-actions">
+            <a href="index.html" class="btn btn-primary">🚀 Launch Live Dashboard</a>
+            <a href="traffic.html" class="btn btn-secondary">📡 Inspect Real-Time Traffic</a>
+            <a href="cloud.html" class="btn btn-ghost" style="border:1px solid var(--border-subtle);">☁️ Cloud Integration Hub</a>
+            <a href="chaos.html" class="btn btn-warning">🧪 Chaos Testing Playground</a>
+          </div>
+        </div>
+
+        <div class="hero-logo-showcase">
+          <img src="logo-dark.png" alt="API Gateway Architecture Logo">
+          <div class="hero-logo-caption">CONNECT • BUILD • SCALE</div>
+        </div>
+      </section>
+
+      <!-- Key Value Propositions -->
+      <section class="value-props-section">
+        <div class="panel-header" style="margin-bottom:16px;">
+          <div class="panel-title-wrap">
+            <h2>Core Architectural Pillars</h2>
+            <p>Designed for ultra-low latency, mission-critical resilience, and effortless multi-cloud orchestration</p>
+          </div>
+          <span class="tag-pill">PRODUCTION GRADE</span>
+        </div>
+
+        <div class="value-props-grid">
+          <div class="prop-card">
+            <div class="prop-icon">⚡</div>
+            <h3 class="prop-title">Atomic Redis Lua Rate Limiting</h3>
+            <p class="prop-desc">
+              Executes atomic sliding-window rate-limiting in Redis using pre-loaded SHA1 Lua scripts (<code>EVALSHA</code>). Eliminates race conditions and guarantees microsecond token bucket evaluations even under millions of concurrent requests.
+            </p>
+            <span class="prop-tag">&lt; 1.0 ms Evaluation | Zero Race Conditions</span>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-icon">🛡️</div>
+            <h3 class="prop-title">Perimeter Security &amp; GeoIP WAF</h3>
+            <p class="prop-desc">
+              Comprehensive defense-in-depth: IP Whitelist/Blacklist WAF, ISO-3166 GeoIP country firewall, 1MB max body limit guard against payload exhaustion (<code>413 Payload Too Large</code>), and OWASP security headers (HSTS, nosniff, DENY).
+            </p>
+            <span class="prop-tag">Zero-Trust | GeoIP Filtering | Body Guard</span>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-icon">☁️</div>
+            <h3 class="prop-title">Multi-Region Cloud Mesh &amp; S3 Archival</h3>
+            <p class="prop-desc">
+              Global edge topology across <code>us-east-1</code> (Leader), <code>eu-west-1</code>, and <code>ap-south-1</code>. Real-time HMAC-SHA256 signed cloud webhook alerts to Slack, Datadog, or AWS EventBridge, plus GZIP S3/GCS log archival.
+            </p>
+            <span class="prop-tag">AWS EventBridge | Slack Alerts | S3 GZIP</span>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-icon">🧪</div>
+            <h3 class="prop-title">Chaos Engineering &amp; Circuit Breakers</h3>
+            <p class="prop-desc">
+              Upstream fault tolerance with state-machine Circuit Breakers (<code>CLOSED</code>, <code>OPEN</code> fast-fail 503, <code>HALF-OPEN</code> recovery). Live dashboard controls to inject synthetic latency (0-1500ms) and simulated 500 faults to test failover in real-time.
+            </p>
+            <span class="prop-tag">Latency Injection | Fault Injection | Auto-Recovery</span>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-icon">📡</div>
+            <h3 class="prop-title">Real-Time Zero-Polling Telemetry (SSE)</h3>
+            <p class="prop-desc">
+              High-frequency Server-Sent Events (SSE) stream pushing live traffic logs, correlation IDs, and metrics directly to connected browser sessions in real time. Features 1-click CSV/JSON traffic audit export.
+            </p>
+            <span class="prop-tag">Server-Sent Events | Live Logger | CSV/JSON Export</span>
+          </div>
+
+          <div class="prop-card">
+            <div class="prop-icon">🚀</div>
+            <h3 class="prop-title">Sub-Millisecond HTTP Response Caching</h3>
+            <p class="prop-desc">
+              Redis HTTP cache for idempotent GET endpoints. Delivers cached microservice responses in <code>&lt; 0.2 ms</code> with <code>X-Cache: HIT</code>, bypassing backend microservices and freeing up server capacity.
+            </p>
+            <span class="prop-tag">&lt; 0.2 ms Latency | X-Cache HIT / MISS</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture Flow Section -->
+      <section class="glow-panel pipeline-section">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2>End-to-End Request Processing Pipeline</h2>
+            <p>Every inbound HTTP request traverses this sequential, zero-allocation processing chain</p>
+          </div>
+          <span class="tag-pill">REQUEST LIFECYCLE</span>
+        </div>
+
+        <div class="pipeline-flow-diagram">
+          <div class="flow-stage" id="stage-client">
+            <span class="stage-icon">💻</span>
+            <span class="stage-name">1. Client Request</span>
+            <span class="stage-sub">HTTP / REST</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-waf">
+            <span class="stage-icon">🛡️</span>
+            <span class="stage-name">2. WAF &amp; GeoIP</span>
+            <span class="stage-sub">IP &amp; Country</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-security">
+            <span class="stage-icon">🔒</span>
+            <span class="stage-name">3. OWASP &amp; Body</span>
+            <span class="stage-sub">1MB Max Guard</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-apikey">
+            <span class="stage-icon">🔑</span>
+            <span class="stage-name">4. Auth &amp; API Key</span>
+            <span class="stage-sub">JWT / Tiers</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-limiter">
+            <span class="stage-icon">⏱️</span>
+            <span class="stage-name">5. Rate Limiter</span>
+            <span class="stage-sub">Redis Sliding Lua</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-cache">
+            <span class="stage-icon">⚡</span>
+            <span class="stage-name">6. HTTP Cache</span>
+            <span class="stage-sub">X-Cache HIT</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-circuit">
+            <span class="stage-icon">🔌</span>
+            <span class="stage-name">7. Circuit Breaker</span>
+            <span class="stage-sub">Fast-Fail 503</span>
+          </div>
+          <span class="flow-arrow">➔</span>
+
+          <div class="flow-stage" id="stage-upstream">
+            <span class="stage-icon">🌐</span>
+            <span class="stage-name">8. Microservice</span>
+            <span class="stage-sub">Load Balanced</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Start Guide -->
+      <section class="quickstart-section">
+        <div class="panel-header" style="margin-bottom:16px;">
+          <div class="panel-title-wrap">
+            <h2>Quick Start &amp; CLI Testing Guide</h2>
+            <p>Test the running gateway directly from your terminal or PowerShell prompt</p>
+          </div>
+          <span class="tag-pill">CLI SNIPPETS</span>
+        </div>
+
+        <div class="quickstart-grid">
+          <!-- Step 1 -->
+          <div class="quickstart-card">
+            <div class="qs-header">
+              <div class="qs-step">
+                <span class="qs-num">1</span>
+                <span class="qs-title">Send Your First Proxied Request</span>
+              </div>
+              <span class="tag-pill">GET /api/orders</span>
+            </div>
+            <div class="qs-code-box">
+              <pre>curl -i http://localhost:8080/api/orders</pre>
+            </div>
+            <p class="prop-desc">
+              Returns HTTP <code>200 OK</code> with rate limit headers: <code>X-RateLimit-Limit: 100</code> and <code>X-RateLimit-Remaining: 99</code>.
+            </p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="quickstart-card">
+            <div class="qs-header">
+              <div class="qs-step">
+                <span class="qs-num">2</span>
+                <span class="qs-title">Trigger Rate Limiting (Burst 10x)</span>
+              </div>
+              <span class="tag-pill">HTTP 429</span>
+            </div>
+            <div class="qs-code-box">
+              <pre># Send 15 rapid requests from PowerShell
+1..15 | ForEach-Object {
+  curl.exe -s -o /dev/null -w "%{http_code}`n" http://localhost:8080/api/orders
+}</pre>
+            </div>
+            <p class="prop-desc">
+              When quota is reached, the gateway returns <code>429 Too Many Requests</code> with a <code>Retry-After</code> countdown header.
+            </p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="quickstart-card">
+            <div class="qs-header">
+              <div class="qs-step">
+                <span class="qs-num">3</span>
+                <span class="qs-title">Authenticate with API Key</span>
+              </div>
+              <span class="tag-pill">X-API-Key</span>
+            </div>
+            <div class="qs-code-box">
+              <pre>curl -i -H "X-API-Key: agy_live_pro_demo_key" http://localhost:8080/api/orders</pre>
+            </div>
+            <p class="prop-desc">
+              Uses the Pro Tier API Key (250 req/min quota). Returns <code>X-API-Key-Tier: pro</code> in response headers.
+            </p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="quickstart-card">
+            <div class="qs-header">
+              <div class="qs-step">
+                <span class="qs-num">4</span>
+                <span class="qs-title">Inspect Distributed Request Trace</span>
+              </div>
+              <span class="tag-pill">X-Correlation-ID</span>
+            </div>
+            <div class="qs-code-box">
+              <pre>curl -i http://localhost:8080/api/orders | Select-String "X-Correlation-ID"</pre>
+            </div>
+            <p class="prop-desc">
+              Every request receives a globally unique correlation ID (e.g. <code>req_17898...</code>) tracked across the distributed tracing waterfall.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7-Page Feature Navigator -->
+      <section class="feature-nav-section">
+        <div class="panel-header" style="margin-bottom:16px;">
+          <div class="panel-title-wrap">
+            <h2>Explore the Gateway Pages</h2>
+            <p>Direct navigation to all 7 dedicated operational dashboards</p>
+          </div>
+          <span class="tag-pill">DASHBOARD SUITE</span>
+        </div>
+
+        <div class="feature-nav-grid">
+          <a href="index.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>📊</span> Overview</h3>
+              <span class="tag-pill">CORE</span>
+            </div>
+            <p class="fn-desc">Live metrics, real-time RPS sparkline, animated architecture pulses, and interactive request sandbox.</p>
+            <span class="fn-link-text">Open Overview &rarr;</span>
+          </a>
+
+          <a href="traffic.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>📡</span> Traffic &amp; Tracing</h3>
+              <span class="tag-pill">STREAM</span>
+            </div>
+            <p class="fn-desc">Full-page live traffic stream with SSE telemetry, filter pills, CSV/JSON export, and latency waterfall.</p>
+            <span class="fn-link-text">Open Traffic Stream &rarr;</span>
+          </a>
+
+          <a href="security.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>🛡️</span> Security &amp; WAF</h3>
+              <span class="tag-pill">FIREWALL</span>
+            </div>
+            <p class="fn-desc">IP Blacklist/Whitelist firewall, ISO GeoIP country rules, 1MB body limit guard, and OWASP audit.</p>
+            <span class="fn-link-text">Open Security Center &rarr;</span>
+          </a>
+
+          <a href="apikeys.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>🔑</span> API Keys &amp; Quotas</h3>
+              <span class="tag-pill">AUTH</span>
+            </div>
+            <p class="fn-desc">Tiered API Key generator (Free, Pro, Enterprise VIP) with instant revocation and custom rate limits.</p>
+            <span class="fn-link-text">Open API Key Manager &rarr;</span>
+          </a>
+
+          <a href="routes.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>🌐</span> Routes &amp; Load Balancer</h3>
+              <span class="tag-pill">BALANCER</span>
+            </div>
+            <p class="fn-desc">Multi-node round-robin load balancer with 5s health pinger, dynamic routes, and circuit breaker status.</p>
+            <span class="fn-link-text">Open Route Manager &rarr;</span>
+          </a>
+
+          <a href="cloud.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>☁️</span> Cloud Integrations</h3>
+              <span class="tag-pill">CLOUD MESH</span>
+            </div>
+            <p class="fn-desc">Multi-region topology (us-east-1, eu-west-1, ap-south-1), HMAC webhook alerts, and S3 GZIP log archival.</p>
+            <span class="fn-link-text">Open Cloud Hub &rarr;</span>
+          </a>
+
+          <a href="chaos.html" class="feature-nav-card">
+            <div class="fn-header">
+              <h3 class="fn-title"><span>🧪</span> Chaos &amp; Playground</h3>
+              <span class="tag-pill">CHAOS</span>
+            </div>
+            <p class="fn-desc">Synthetic latency &amp; fault injector, manual circuit breaker trip/reset, burst tests, and 1k load tester.</p>
+            <span class="fn-link-text">Open Chaos Playground &rarr;</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer" style="margin-top:24px;">
+      <div class="footer-left">
+        <span class="dot-online"></span>
+        <span>High-Performance Distributed Rate Limiter &amp; API Gateway (Go + Redis)</span>
+      </div>
+      <div class="footer-links">
+        <a href="/metrics" target="_blank" class="footer-link">Prometheus /metrics</a>
+        <a href="/healthz" target="_blank" class="footer-link">Healthz</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Mobile App Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+      <span class="mob-icon">📊</span>
+      <span>Overview</span>
+    </a>
+    <a href="ai.html" class="mob-nav-item">
+      <span class="mob-icon">🤖</span>
+      <span>AI Hub</span>
+    </a>
+    <a href="traffic.html" class="mob-nav-item">
+      <span class="mob-icon">📡</span>
+      <span>Traffic</span>
+    </a>
+    <a href="security.html" class="mob-nav-item">
+      <span class="mob-icon">🛡️</span>
+      <span>Security</span>
+    </a>
+    <a href="#" id="mob-nav-more-btn" class="mob-nav-item">
+      <span class="mob-icon">⋯</span>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mob-drawer-backdrop" class="mob-drawer-backdrop"></div>
+
+  <!-- Mobile "More" Drawer -->
+  <div id="mob-more-drawer" class="mob-more-drawer">
+    <div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-header">
+      <span class="mob-drawer-title">⚡ Gateway Suite</span>
+      <button id="mob-drawer-close" class="mob-drawer-close">✕</button>
+    </div>
+    <div class="mob-drawer-grid">
+      <a href="apikeys.html" class="mob-drawer-item">
+        <span class="drawer-icon">🔑</span>
+        <span>API Keys</span>
+      </a>
+      <a href="routes.html" class="mob-drawer-item">
+        <span class="drawer-icon">🌐</span>
+        <span>Routes &amp; LB</span>
+      </a>
+      <a href="cloud.html" class="mob-drawer-item">
+        <span class="drawer-icon">☁️</span>
+        <span>Cloud Hub</span>
+      </a>
+      <a href="chaos.html" class="mob-drawer-item">
+        <span class="drawer-icon">🧪</span>
+        <span>Chaos Lab</span>
+      </a>
+      <a href="intro.html" class="mob-drawer-item active">
+        <span class="drawer-icon">📖</span>
+        <span>Docs &amp; Guide</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
